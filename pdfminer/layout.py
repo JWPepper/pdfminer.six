@@ -236,6 +236,14 @@ class LTChar(LTComponent, LTText):
         self.ncs = ncs
         self.graphicstate = graphicstate
         self.adv = textwidth * fontsize * scaling
+        
+        # Additional LTChar attributes
+        self.font = font
+        self.fontsize = fontsize
+        self.scaling = scaling
+        self.textdisp = textdisp
+        self.textwidth = textwidth
+
         # compute the boundary rectangle.
         if font.is_vertical():
             # vertical

@@ -108,8 +108,10 @@ class PDFLayoutAnalyzer(PDFTextDevice):
         for p in path:
             for i in range(1, len(p), 2):
                 pts.append(apply_matrix_pt(self.ctm, (p[i], p[i+1])))
+        
+        # Add path to LTCurve - JS - 6/7/19
         self.cur_item.add(LTCurve(gstate.linewidth, pts, stroke, fill,
-            evenodd, gstate.scolor, gstate.ncolor))
+            evenodd, gstate.scolor, gstate.ncolor, path))
         return
 
     def render_char(self, matrix, font, fontsize, scaling, rise, cid, ncs, graphicstate):

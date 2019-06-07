@@ -154,7 +154,7 @@ class LTComponent(LTItem):
 ##
 class LTCurve(LTComponent):
 
-    def __init__(self, linewidth, pts, stroke = False, fill = False, evenodd = False, stroking_color = None, non_stroking_color = None):
+    def __init__(self, linewidth, pts, stroke = False, fill = False, evenodd = False, stroking_color = None, non_stroking_color = None, path = None):
         LTComponent.__init__(self, get_bound(pts))
         self.pts = pts
         self.linewidth = linewidth
@@ -163,6 +163,9 @@ class LTCurve(LTComponent):
         self.evenodd = evenodd
         self.stroking_color = stroking_color
         self.non_stroking_color = non_stroking_color
+
+        # Add path to LTCurve - JS - 6/7/19
+        self.path = path
         return
 
     def get_pts(self):

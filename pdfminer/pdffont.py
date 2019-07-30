@@ -22,6 +22,7 @@ from .pdftypes import num_value
 from .pdftypes import list_value
 from .pdftypes import dict_value
 from .pdftypes import stream_value
+from .pdftypes import PDFObjRef
 from .fontmetrics import FONT_METRICS
 from .utils import apply_matrix_norm
 from .utils import nunpack
@@ -599,6 +600,40 @@ class PDFType1Font(PDFSimpleFont):
             data = self.fontfile.get_data()[:length1]
             parser = Type1FontHeaderParser(BytesIO(data))
             self.cid2unicode = parser.get_encoding()
+
+        # NEW CODE
+        # Add support for custom encodings
+        if 'Encoding' in spec:
+            encoding = spec['Encoding']
+            if isinstance(encoding, PDFObjRef):
+                encoding = encoding.resolve()
+                if not isinstance(encoding, PSLiteral) and 'Differences' in encoding:
+                    # Parse differences table
+                    # Ex: [2, /'summation', 27, /'dotaccent', 35, /'numbersign', 38, /'ampersand',
+                    # 45, /'hyphen', /'period', /'slash', ...
+                    # is parsed to: {2: 'summation', 27: 'dotaccent', 25: 'numbersign, 38: 'ampersand',
+                    # 45: 'hyphen', 46: 'period', 47: 'slash', ...}
+                    encodingDifferences = {}
+                    currentCode = 0
+                    for item in encoding["Differences"]:
+                        if isinstance(item, int):
+                            currentCode = item
+                        else:
+                            encodingDifferences[currentCode] = item.name
+                            currentCode += 1
+
+                    # Replace the cid2unicode table with the differences
+                    for key in encodingDifferences.keys():
+                        newChar = encodingDifferences[key]
+                        if newChar.startswith("uni"):
+                            # Convert from uniXXXX to Unicode literal
+                            hexValue = newChar[3:]
+                            decimalValue = int(hexValue, 16)
+                            newChar = chr(decimalValue)
+
+                        self.cid2unicode[key] = newChar
+
+        # END NEW CODE
         return
 
     def __repr__(self):

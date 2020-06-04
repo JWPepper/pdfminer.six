@@ -21,12 +21,23 @@ Check out the source on `github <https://github.com/pdfminer/pdfminer.six>`_.
 Content
 =======
 
+This documentation is organized into four sections (according to the `Divio
+documentation system <https://documentation.divio.com>`_). The
+:ref:`tutorial` section helps you setup and use pdfminer.six for the first
+time. Read this section if this is your first time working with pdfminer.six.
+The :ref:`howto` offers specific recipies for solving common problems.
+Take a look at the :ref:`topic` if you want more background information on
+how pdfminer.six works internally. The :ref:`reference` provides
+detailed api documentation for all the common classes and functions in
+pdfminer.six.
+
 .. toctree::
     :maxdepth: 2
 
-    tutorials/index
-    topics/index
-    api/index
+    tutorial/index
+    howto/index
+    topic/index
+    reference/index
 
 
 Features
@@ -40,28 +51,17 @@ Features
 * Support for Chinese, Japanese and Korean CJK) languages as well as vertical
   writing.
 * Support for various font types (Type1, TrueType, Type3, and CID).
-* Support for basic encryption (RC4).
+* Support for RC4 and AES encryption.
 
 
 Installation instructions
 =========================
 
-Before using it, you must install it using Python 2.7 or newer.
+Before using it, you must install it using Python 3.4 or newer.
 
 ::
 
     $ pip install pdfminer.six
-
-Note that Python 2.7 support is dropped at January, 2020.
-
-Common use-cases
-----------------
-
-* :ref:`tutorial_commandline` if you just want to extract text from a pdf once.
-* :ref:`tutorial_highlevel` if you want to integrate pdfminer.six with your
-  Python code.
-* :ref:`tutorial_composable` when you want to tailor the behavior of
-  pdfmine.six to your needs.
 
 
 Contributing

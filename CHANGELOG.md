@@ -3,7 +3,54 @@ All notable changes in pdfminer.six will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [20200517]
+
+### Added
+- Python3 shebang line to script in tools ([408](https://github.com/pdfminer/pdfminer.six/pull/408)
+
+### Fixed
+- Fix ordering of textlines within a textbox when `boxes_flow=None` ([#411](https://github.com/pdfminer/pdfminer.six/issues/411))
+
+## [20200402]
+
+### Added
+- Allow boxes_flow LAParam to be passed as None, validate the input, and update documentation ([#395](https://github.com/pdfminer/pdfminer.six/pull/395))
+
+### Fixed
+- Text no longer comes in reverse order when advanced layout analysis is disabled ([#398](https://github.com/pdfminer/pdfminer.six/pull/398))
+- Updated misleading documentation for `word_margin` and `char_margin` ([#407](https://github.com/pdfminer/pdfminer.six/pull/407))
+- Ignore ValueError when converting font encoding differences ([#389](https://github.com/pdfminer/pdfminer.six/pull/389))
+- Grouping of text lines outside of parent container bounding box ([#386](https://github.com/pdfminer/pdfminer.six/pull/386))
+
+### Added
+- Also accept file-like objects in high level functions `extract_text` and `extract_pages` ([#392](https://github.com/pdfminer/pdfminer.six/pull/392))
+
+### Changed
+- Group text lines if they are centered ([#382](https://github.com/pdfminer/pdfminer.six/pull/382))
+
+## [20200124] - 2020-01-24
+
+### Security
+- Removed samples/issue-00152-embedded-pdf.pdf because it contains a possible security thread; a javascript enabled object ([#364](https://github.com/pdfminer/pdfminer.six/pull/364))
+
+## [20200121] - 2020-01-21
+
+### Fixed
+- Interpret two's complement integer as unsigned integer ([#352](https://github.com/pdfminer/pdfminer.six/pull/352))
+- Fix font name in html output such that it is recognized by browser ([#357](https://github.com/pdfminer/pdfminer.six/pull/357))
+- Compute correct font height by removing scaling with font bounding box height ([#348](https://github.com/pdfminer/pdfminer.six/pull/348))
+- KeyError when extracting embedded files and a Unicode file specification is missing ([#338](https://github.com/pdfminer/pdfminer.six/pull/338))
+
+### Removed
+- The command-line utility latin2ascii.py ([#360](https://github.com/pdfminer/pdfminer.six/pull/360))
+
+## [20200104] - 2019-01-04
+
+## Removed
+- Support for Python 2 ([#346](https://github.com/pdfminer/pdfminer.six/pull/346))
+
+### Changed
+- Enforce pep8 coding style by adding flake8 to CI ([#345](https://github.com/pdfminer/pdfminer.six/pull/345))
 
 ## [20191110] - 2019-11-10
 

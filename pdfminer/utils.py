@@ -2,31 +2,47 @@
 Miscellaneous Routines.
 """
 import struct
+from html import escape
 
-import six
+import chardet  # For str encoding detection
 
-# from sys import maxint as INF doesn't work anymore under Python3, but PDF still uses 32 bits ints
+# from sys import maxint as INF doesn't work anymore under Python3, but PDF
+# still uses 32 bits ints
 INF = (1 << 31) - 1
 
-if six.PY3:
-    import chardet  # For str encoding detection in Py3
 
-    unicode = str
+class open_filename(object):
+    """
+    Context manager that allows opening a filename and closes it on exit,
+    (just like `open`), but does nothing for file-like objects.
+    """
+    def __init__(self, filename, *args, **kwargs):
+        if isinstance(filename, str):
+            self.file_handler = open(filename, *args, **kwargs)
+            self.closing = True
+        else:
+            self.file_handler = filename
+            self.closing = False
+
+    def __enter__(self):
+        return self.file_handler
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.closing:
+            self.file_handler.close()
+        return False
 
 
 def make_compat_bytes(in_str):
-    """In Py2, does nothing. In Py3, converts to bytes, encoding to unicode."""
+    "Converts to bytes, encoding to unicode."
     assert isinstance(in_str, str), str(type(in_str))
-    if six.PY2:
-        return in_str
-    else:
-        return in_str.encode()
+    return in_str.encode()
 
 
 def make_compat_str(in_str):
-    """In Py2, does nothing. In Py3, converts to string, guessing encoding."""
-    assert isinstance(in_str, (bytes, str, unicode)), str(type(in_str))
-    if six.PY3 and isinstance(in_str, bytes):
+    """Converts to string, guessing encoding."""
+    assert isinstance(in_str, (bytes, str)), str(type(in_str))
+    if isinstance(in_str, bytes):
         enc = chardet.detect(in_str)
         in_str = in_str.decode(enc['encoding'])
     return in_str
@@ -42,16 +58,16 @@ def shorten_str(s, size):
         return s
 
 
-def compatible_encode_method(bytesorstring, encoding='utf-8', erraction='ignore'):
-    """When Py2 str.encode is called, it often means bytes.encode in Py3. This does either."""
-    if six.PY2:
-        assert isinstance(bytesorstring, (str, unicode)), str(type(bytesorstring))
-        return bytesorstring.encode(encoding, erraction)
-    if six.PY3:
-        if isinstance(bytesorstring, str):
-            return bytesorstring
-        assert isinstance(bytesorstring, bytes), str(type(bytesorstring))
-        return bytesorstring.decode(encoding, erraction)
+def compatible_encode_method(bytesorstring, encoding='utf-8',
+                             erraction='ignore'):
+    """When Py2 str.encode is called, it often means bytes.encode in Py3.
+
+     This does either.
+     """
+    if isinstance(bytesorstring, str):
+        return bytesorstring
+    assert isinstance(bytesorstring, bytes), str(type(bytesorstring))
+    return bytesorstring.decode(encoding, erraction)
 
 
 def apply_png_predictor(pred, colors, columns, bitspercomponent, data):
@@ -64,8 +80,6 @@ def apply_png_predictor(pred, colors, columns, bitspercomponent, data):
     line0 = b'\x00' * columns
     for i in range(0, len(data), nbytes + 1):
         ft = data[i]
-        if six.PY2:
-            ft = six.byte2int(ft)
         i += 1
         line1 = data[i:i + nbytes]
         line2 = b''
@@ -76,25 +90,19 @@ def apply_png_predictor(pred, colors, columns, bitspercomponent, data):
             # PNG sub (UNTESTED)
             c = 0
             for b in line1:
-                if six.PY2:
-                    b = six.byte2int(b)
                 c = (c + b) & 255
-                line2 += six.int2byte(c)
+                line2 += bytes((c,))
         elif ft == 2:
             # PNG up
             for (a, b) in zip(line0, line1):
-                if six.PY2:
-                    a, b = six.byte2int(a), six.byte2int(b)
                 c = (a + b) & 255
-                line2 += six.int2byte(c)
+                line2 += bytes((c,))
         elif ft == 3:
             # PNG average (UNTESTED)
             c = 0
             for (a, b) in zip(line0, line1):
-                if six.PY2:
-                    a, b = six.byte2int(a), six.byte2int(b)
                 c = ((c + a + b) // 2) & 255
-                line2 += six.int2byte(c)
+                line2 += bytes((c,))
         else:
             # unsupported
             raise ValueError("Unsupported predictor value: %d" % ft)
@@ -140,7 +148,7 @@ def apply_matrix_norm(m, v):
 #  Utility functions
 
 def isnumber(x):
-    return isinstance(x, (six.integer_types, float))
+    return isinstance(x, (int, float))
 
 
 def uniq(objs):
@@ -205,24 +213,24 @@ def choplist(n, seq):
 
 def nunpack(s, default=0):
     """Unpacks 1 to 4 or 8 byte integers (big endian)."""
-    l = len(s)
-    if not l:
+    length = len(s)
+    if not length:
         return default
-    elif l == 1:
+    elif length == 1:
         return ord(s)
-    elif l == 2:
+    elif length == 2:
         return struct.unpack('>H', s)[0]
-    elif l == 3:
+    elif length == 3:
         return struct.unpack('>L', b'\x00' + s)[0]
-    elif l == 4:
+    elif length == 4:
         return struct.unpack('>L', s)[0]
-    elif l == 8:
+    elif length == 8:
         return struct.unpack('>Q', s)[0]
     else:
-        raise TypeError('invalid length: %d' % l)
+        raise TypeError('invalid length: %d' % length)
 
 
-PDFDocEncoding = ''.join(six.unichr(x) for x in (
+PDFDocEncoding = ''.join(chr(x) for x in (
     0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
     0x0008, 0x0009, 0x000a, 0x000b, 0x000c, 0x000d, 0x000e, 0x000f,
     0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0017, 0x0017,
@@ -261,36 +269,36 @@ PDFDocEncoding = ''.join(six.unichr(x) for x in (
 def decode_text(s):
     """Decodes a PDFDocEncoding string to Unicode."""
     if s.startswith(b'\xfe\xff'):
-        return six.text_type(s[2:], 'utf-16be', 'ignore')
+        return str(s[2:], 'utf-16be', 'ignore')
     else:
         return ''.join(PDFDocEncoding[c] for c in s)
 
 
-def enc(x, codec='ascii'):
+def enc(x):
     """Encodes a string for SGML/XML/HTML"""
-    if six.PY3 and isinstance(x, bytes):
+    if isinstance(x, bytes):
         return ''
-    x = x.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;').replace('"', '&quot;')
-    if codec:
-        x = x.encode(codec, 'xmlcharrefreplace')
-    return x
+    return escape(x)
 
 
 def bbox2str(bbox):
     (x0, y0, x1, y1) = bbox
-    return '%.3f,%.3f,%.3f,%.3f' % (x0, y0, x1, y1)
+    return '{:.3f},{:.3f},{:.3f},{:.3f}'.format(x0, y0, x1, y1)
 
 
 def matrix2str(m):
     (a, b, c, d, e, f) = m
-    return '[%.2f,%.2f,%.2f,%.2f, (%.2f,%.2f)]' % (a, b, c, d, e, f)
+    return '[{:.2f},{:.2f},{:.2f},{:.2f}, ({:.2f},{:.2f})]'\
+        .format(a, b, c, d, e, f)
 
 
 def vecBetweenBoxes(obj1, obj2):
     """A distance function between two TextBoxes.
 
     Consider the bounding rectangle for obj1 and obj2.
-    Return vector between 2 boxes boundaries if they don't overlap, otherwise returns vector betweeen boxes centers
+    Return vector between 2 boxes boundaries if they don't overlap, otherwise
+    returns vector betweeen boxes centers
+
              +------+..........+ (x1, y1)
              | obj1 |          :
              +------+www+------+
@@ -310,7 +318,7 @@ def vecBetweenBoxes(obj1, obj2):
         return max(0, iw), max(0, ih)
 
 
-class Plane(object):
+class Plane:
     """A set-like data structure for objects placed on a plane.
 
     Can efficiently find objects in a certain rectangular area.
@@ -385,6 +393,7 @@ class Plane(object):
                 if obj in done:
                     continue
                 done.add(obj)
-                if obj.x1 <= x0 or x1 <= obj.x0 or obj.y1 <= y0 or y1 <= obj.y0:
+                if obj.x1 <= x0 or x1 <= obj.x0 or obj.y1 <= y0 \
+                        or y1 <= obj.y0:
                     continue
                 yield obj

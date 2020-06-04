@@ -13,10 +13,7 @@ import sys
 import os
 import os.path
 import gzip
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle as pickle
+import pickle as pickle
 import struct
 import logging
 from .psparser import PSStackParser
@@ -29,7 +26,6 @@ from .encodingdb import name2unicode
 from .utils import choplist
 from .utils import nunpack
 
-import six  #Python 2+3 compatibility
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +34,7 @@ class CMapError(Exception):
     pass
 
 
-class CMapBase(object):
+class CMapBase:
 
     debug = 0
 
@@ -77,7 +73,7 @@ class CMap(CMapBase):
         assert isinstance(cmap, CMap), str(type(cmap))
 
         def copy(dst, src):
-            for (k, v) in six.iteritems(src):
+            for (k, v) in src.items():
                 if isinstance(v, dict):
                     d = {}
                     dst[k] = d
@@ -90,7 +86,7 @@ class CMap(CMapBase):
     def decode(self, code):
         log.debug('decode: %r, %r', self, code)
         d = self.code2cid
-        for i in six.iterbytes(code):
+        for i in iter(code):
             if i in d:
                 d = d[i]
                 if isinstance(d, int):
@@ -104,7 +100,7 @@ class CMap(CMapBase):
         if code2cid is None:
             code2cid = self.code2cid
             code = ()
-        for (k, v) in sorted(six.iteritems(code2cid)):
+        for (k, v) in sorted(code2cid.items()):
             c = code+(k,)
             if isinstance(v, int):
                 out.write('code %r = cid %d\n' % (c, v))
@@ -148,7 +144,7 @@ class UnicodeMap(CMapBase):
         return self.cid2unichr[cid]
 
     def dump(self, out=sys.stdout):
-        for (k, v) in sorted(six.iteritems(self.cid2unichr)):
+        for (k, v) in sorted(self.cid2unichr.items()):
             out.write('cid %d = unicode %r\n' % (k, v))
         return
 
@@ -156,7 +152,8 @@ class UnicodeMap(CMapBase):
 class FileCMap(CMap):
 
     def add_code2cid(self, code, cid):
-        assert isinstance(code, str) and isinstance(cid, int), str((type(code), type(cid)))
+        assert isinstance(code, str) and isinstance(cid, int),\
+            str((type(code), type(cid)))
         d = self.code2cid
         for c in code[:-1]:
             c = ord(c)
@@ -182,7 +179,7 @@ class FileUnicodeMap(UnicodeMap):
             # Interpret as UTF-16BE.
             self.cid2unichr[cid] = code.decode('UTF-16BE', 'ignore')
         elif isinstance(code, int):
-            self.cid2unichr[cid] = six.unichr(code)
+            self.cid2unichr[cid] = chr(code)
         else:
             raise TypeError(code)
         return
@@ -210,7 +207,7 @@ class PyUnicodeMap(UnicodeMap):
         return
 
 
-class CMapDB(object):
+class CMapDB:
 
     _cmap_cache = {}
     _umap_cache = {}
@@ -219,7 +216,7 @@ class CMapDB(object):
         pass
 
     @classmethod
-    def _load_data(klass, name):
+    def _load_data(cls, name):
         name = name.replace("\0", "")
         filename = '%s.pickle.gz' % name
         log.info('loading: %r', name)
@@ -237,7 +234,7 @@ class CMapDB(object):
             raise CMapDB.CMapNotFound(name)
 
     @classmethod
-    def get_cmap(klass, name):
+    def get_cmap(cls, name):
         if name == 'Identity-H':
             return IdentityCMap(WMode=0)
         elif name == 'Identity-V':
@@ -247,22 +244,23 @@ class CMapDB(object):
         elif name == 'OneByteIdentityV':
             return IdentityCMapByte(WMode=1)
         try:
-            return klass._cmap_cache[name]
+            return cls._cmap_cache[name]
         except KeyError:
             pass
-        data = klass._load_data(name)
-        klass._cmap_cache[name] = cmap = PyCMap(name, data)
+        data = cls._load_data(name)
+        cls._cmap_cache[name] = cmap = PyCMap(name, data)
         return cmap
 
     @classmethod
-    def get_unicode_map(klass, name, vertical=False):
+    def get_unicode_map(cls, name, vertical=False):
         try:
-            return klass._umap_cache[name][vertical]
+            return cls._umap_cache[name][vertical]
         except KeyError:
             pass
-        data = klass._load_data('to-unicode-%s' % name)
-        klass._umap_cache[name] = umaps = [PyUnicodeMap(name, data, v) for v in (False, True)]
-        return umaps[vertical]
+        data = cls._load_data('to-unicode-%s' % name)
+        cls._umap_cache[name] = [PyUnicodeMap(name, data, v)
+                                 for v in (False, True)]
+        return cls._umap_cache[name][vertical]
 
 
 class CMapParser(PSStackParser):
@@ -375,7 +373,7 @@ class CMapParser(PSStackParser):
             for (s, e, code) in choplist(3, objs):
                 if (not isinstance(s, bytes) or not isinstance(e, bytes) or
                    len(s) != len(e)):
-                        continue
+                    continue
                 s1 = nunpack(s)
                 e1 = nunpack(e)
                 if isinstance(code, list):

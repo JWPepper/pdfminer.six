@@ -3,7 +3,6 @@ import struct
 import sys
 from io import BytesIO
 
-import six  # Python 2+3 compatibility
 
 from . import settings
 from .cmapdb import CMap
@@ -15,7 +14,6 @@ from .encodingdb import name2unicode
 from .fontmetrics import FONT_METRICS
 from .pdftypes import PDFException
 from .pdftypes import PDFStream
-from .pdftypes import resolve1
 from .pdftypes import dict_value
 from .pdftypes import int_value
 from .pdftypes import list_value
@@ -37,6 +35,7 @@ from .utils import nunpack
 
 log = logging.getLogger(__name__)
 
+
 def get_widths(seq):
     widths = {}
     r = []
@@ -55,6 +54,7 @@ def get_widths(seq):
                     widths[i] = w
                 r = []
     return widths
+
 
 def get_widths2(seq):
     widths = {}
@@ -76,10 +76,10 @@ def get_widths2(seq):
     return widths
 
 
-class FontMetricsDB(object):
+class FontMetricsDB:
 
     @classmethod
-    def get_metrics(klass, fontname):
+    def get_metrics(cls, fontname):
         return FONT_METRICS[fontname]
 
 
@@ -100,14 +100,16 @@ class Type1FontHeaderParser(PSStackParser):
         return
 
     def get_encoding(self):
-        """Parse the font encoding
+        """Parse the font encoding.
 
-        The Type1 font encoding maps character codes to character names. These character names could either be standard
-        Adobe glyph names, or character names associated with custom CharStrings for this font. A CharString is a
-        sequence of operations that describe how the character should be drawn.
-        Currently, this function returns '' (empty string) for character names that are associated with a CharStrings.
+        The Type1 font encoding maps character codes to character names. These
+        character names could either be standard Adobe glyph names, or
+        character names associated with custom CharStrings for this font. A
+        CharString is a sequence of operations that describe how the character
+        should be drawn. Currently, this function returns '' (empty string)
+        for character names that are associated with a CharStrings.
 
-        References: http://wwwimages.adobe.com/content/dam/Adobe/en/devnet/font/pdfs/T1_SPEC.pdf
+        Reference: Adobe Systems Incorporated, Adobe Type 1 Font Format
 
         :returns mapping of character identifiers (cid's) to unicode characters
         """
@@ -125,23 +127,25 @@ class Type1FontHeaderParser(PSStackParser):
     def do_keyword(self, pos, token):
         if token is self.KEYWORD_PUT:
             ((_, key), (_, value)) = self.pop(2)
-            if (isinstance(key, int) and
-                isinstance(value, PSLiteral)):
+            if (isinstance(key, int) and isinstance(value, PSLiteral)):
                 self.add_results((key, literal_name(value)))
         return
 
 
-NIBBLES = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', 'e', 'e-', None, '-')
+NIBBLES = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', 'e', 'e-',
+           None, '-')
 
-#Note: DLIdent-* isn't found in PDF Reference but is been kept as
-#it is harmless and have possibility of been a type. (induced from bug report/PR)
-IDENTITY_ENCODER = {'Identity-H':'Identity-H',
-                    'Identity-V':'Identity-V',
-                    'DLIdent-H':'Identity-H',
-                    'DLIdent-V':'Identity-V',
-                    'OneByteIdentityH':'OneByteIdentityH',
-                    'OneByteIdentityV':'OneByteIdentityV',
+# Note: DLIdent-* isn't found in PDF Reference but is been kept as
+# it is harmless and have possibility of been a type.
+# (induced from bug report/PR)
+IDENTITY_ENCODER = {'Identity-H': 'Identity-H',
+                    'Identity-V': 'Identity-V',
+                    'DLIdent-H': 'Identity-H',
+                    'DLIdent-V': 'Identity-V',
+                    'OneByteIdentityH': 'OneByteIdentityH',
+                    'OneByteIdentityV': 'OneByteIdentityV',
                     }
+
 
 def getdict(data):
     d = {}
@@ -182,12 +186,13 @@ def getdict(data):
                 if b0 == 28:
                     value = b1 << 8 | b2
                 else:
-                    value = b1 << 24 | b2 << 16 | struct.unpack('>H', fp.read(2))[0]
+                    value = b1 << 24 | b2 << 16 | \
+                            struct.unpack('>H', fp.read(2))[0]
         stack.append(value)
     return d
 
 
-class CFFFont(object):
+class CFFFont:
 
     STANDARD_STRINGS = (
       '.notdef', 'space', 'exclam', 'quotedbl', 'numbersign',
@@ -270,8 +275,7 @@ class CFFFont(object):
       'Light', 'Medium', 'Regular', 'Roman', 'Semibold',
     )
 
-
-    class INDEX(object):
+    class INDEX:
 
         def __init__(self, fp):
             self.fp = fp
@@ -300,7 +304,8 @@ class CFFFont(object):
         self.name = name
         self.fp = fp
         # Header
-        (_major, _minor, hdrsize, offsize) = struct.unpack('BBBB', self.fp.read(4))
+        (_major, _minor, hdrsize, offsize) = struct.unpack('BBBB',
+                                                           self.fp.read(4))
         self.fp.read(hdrsize-4)
         # Name INDEX
         self.name_index = self.INDEX(self.fp)
@@ -327,7 +332,8 @@ class CFFFont(object):
         if format == b'\x00':
             # Format 0
             (n,) = struct.unpack('B', self.fp.read(1))
-            for (code, gid) in enumerate(struct.unpack('B'*n, self.fp.read(n))):
+            for (code, gid) in enumerate(struct.unpack('B'*n,
+                                                       self.fp.read(n))):
                 self.code2gid[code] = gid
                 self.gid2code[gid] = code
         elif format == b'\x01':
@@ -350,7 +356,8 @@ class CFFFont(object):
         if format == b'\x00':
             # Format 0
             n = self.nglyphs-1
-            for (gid, sid) in enumerate(struct.unpack('>'+'H'*n, self.fp.read(2*n))):
+            for (gid, sid) in enumerate(struct.unpack('>'+'H'*n,
+                                                      self.fp.read(2*n))):
                 gid += 1
                 name = self.getstr(sid)
                 self.name2gid[name] = gid
@@ -379,7 +386,7 @@ class CFFFont(object):
         return self.string_index[sid-len(self.STANDARD_STRINGS)]
 
 
-class TrueTypeFont(object):
+class TrueTypeFont:
 
     class CMapNotFound(Exception):
         pass
@@ -392,7 +399,8 @@ class TrueTypeFont(object):
         try:
             (ntables, _1, _2, _3) = struct.unpack('>HHHH', fp.read(8))
             for _ in range(ntables):
-                (name, tsum, offset, length) = struct.unpack('>4sLLL', fp.read(16))
+                (name, tsum, offset, length) = struct.unpack('>4sLLL',
+                                                             fp.read(16))
                 self.tables[name] = (offset, length)
         except struct.error:
             # Do not fail if there are not enough bytes to read. Even for
@@ -417,7 +425,8 @@ class TrueTypeFont(object):
             fp.seek(base_offset+st_offset)
             (fmttype, fmtlen, fmtlang) = struct.unpack('>HHH', fp.read(6))
             if fmttype == 0:
-                char2gid.update(enumerate(struct.unpack('>256B', fp.read(256))))
+                char2gid.update(enumerate(struct.unpack('>256B',
+                                                        fp.read(256))))
             elif fmttype == 2:
                 subheaderkeys = struct.unpack('>256H', fp.read(512))
                 firstbytes = [0]*8192
@@ -426,8 +435,10 @@ class TrueTypeFont(object):
                 nhdrs = max(subheaderkeys)//8 + 1
                 hdrs = []
                 for i in range(nhdrs):
-                    (firstcode, entcount, delta, offset) = struct.unpack('>HHhH', fp.read(8))
-                    hdrs.append((i, firstcode, entcount, delta, fp.tell()-2+offset))
+                    (firstcode, entcount, delta, offset) = \
+                        struct.unpack('>HHhH', fp.read(8))
+                    hdrs.append((i, firstcode, entcount, delta,
+                                 fp.tell()-2+offset))
                 for (i, firstcode, entcount, delta, pos) in hdrs:
                     if not entcount:
                         continue
@@ -451,7 +462,8 @@ class TrueTypeFont(object):
                     if idr:
                         fp.seek(pos+idr)
                         for c in range(sc, ec+1):
-                            char2gid[c] = (struct.unpack('>H', fp.read(2))[0] + idd) & 0xffff
+                            b = struct.unpack('>H', fp.read(2))[0]
+                            char2gid[c] = (b + idd) & 0xffff
                     else:
                         for c in range(sc, ec+1):
                             char2gid[c] = (c + idd) & 0xffff
@@ -459,7 +471,7 @@ class TrueTypeFont(object):
                 assert False, str(('Unhandled', fmttype))
         # create unicode map
         unicode_map = FileUnicodeMap()
-        for (char, gid) in six.iteritems(char2gid):
+        for (char, gid) in char2gid.items():
             unicode_map.add_cid2unichr(gid, char)
         return unicode_map
 
@@ -471,11 +483,12 @@ class PDFFontError(PDFException):
 class PDFUnicodeNotDefined(PDFFontError):
     pass
 
+
 LITERAL_STANDARD_ENCODING = LIT('StandardEncoding')
 LITERAL_TYPE1C = LIT('Type1C')
 
 
-class PDFFont(object):
+class PDFFont:
 
     def __init__(self, descriptor, widths, default_width=None):
         self.descriptor = descriptor
@@ -487,9 +500,13 @@ class PDFFont(object):
         self.ascent = num_value(descriptor.get('Ascent', 0))
         self.descent = num_value(descriptor.get('Descent', 0))
         self.italic_angle = num_value(descriptor.get('ItalicAngle', 0))
-        self.default_width = default_width or num_value(descriptor.get('MissingWidth', 0))
+        if default_width is None:
+            self.default_width = num_value(descriptor.get('MissingWidth', 0))
+        else:
+            self.default_width = default_width
         self.leading = num_value(descriptor.get('Leading', 0))
-        self.bbox = list_value(resolve_all(descriptor.get('FontBBox', (0, 0, 0, 0))))
+        self.bbox = list_value(resolve_all(descriptor.get('FontBBox',
+                                                          (0, 0, 0, 0))))
         self.hscale = self.vscale = .001
 
         # PDF RM 9.8.1 specifies /Descent should always be a negative number.
@@ -559,7 +576,8 @@ class PDFSimpleFont(PDFFont):
         else:
             encoding = LITERAL_STANDARD_ENCODING
         if isinstance(encoding, dict):
-            name = literal_name(encoding.get('BaseEncoding', LITERAL_STANDARD_ENCODING))
+            name = literal_name(encoding.get('BaseEncoding',
+                                             LITERAL_STANDARD_ENCODING))
             diff = list_value(encoding.get('Differences', []))
             self.cid2unicode = EncodingDB.get_encoding(name, diff)
         else:
@@ -598,9 +616,9 @@ class PDFType1Font(PDFSimpleFont):
         except KeyError:
             descriptor = dict_value(spec.get('FontDescriptor', {}))
             firstchar = int_value(spec.get('FirstChar', 0))
-            #lastchar = int_value(spec.get('LastChar', 255))
+            # lastchar = int_value(spec.get('LastChar', 255))
             widths = list_value(spec.get('Widths', [0]*256))
-            widths = dict((i+firstchar, w) for (i, w) in enumerate(widths))
+            widths = {i+firstchar: w for (i, w) in enumerate(widths)}
         PDFSimpleFont.__init__(self, descriptor, widths, spec)
         if 'Encoding' not in spec and 'FontFile' in descriptor:
             # try to recover the missing encoding info from the font file.
@@ -659,9 +677,9 @@ class PDFType3Font(PDFSimpleFont):
 
     def __init__(self, rsrcmgr, spec):
         firstchar = int_value(spec.get('FirstChar', 0))
-        #lastchar = int_value(spec.get('LastChar', 0))
+        # lastchar = int_value(spec.get('LastChar', 0))
         widths = list_value(spec.get('Widths', [0]*256))
-        widths = dict((i+firstchar, w) for (i, w) in enumerate(widths))
+        widths = {i+firstchar: w for (i, w) in enumerate(widths)}
         if 'FontDescriptor' in spec:
             descriptor = dict_value(spec['FontDescriptor'])
         else:
@@ -687,8 +705,11 @@ class PDFCIDFont(PDFFont):
                 raise PDFFontError('BaseFont is missing')
             self.basefont = 'unknown'
         self.cidsysteminfo = dict_value(spec.get('CIDSystemInfo', {}))
-        self.cidcoding = '%s-%s' % (resolve1(self.cidsysteminfo.get('Registry', b'unknown')).decode("latin1"),
-                                    resolve1(self.cidsysteminfo.get('Ordering', b'unknown')).decode("latin1"))
+        cid_registry = resolve1(
+            self.cidsysteminfo.get('Registry', b'unknown')).decode("latin1")
+        cid_ordering = resolve1(
+            self.cidsysteminfo.get('Ordering', b'unknown')).decode("latin1")
+        self.cidcoding = '{}-{}'.format(cid_registry, cid_ordering)
         self.cmap = self.get_cmap_from_spec(spec, strict)
 
         try:
@@ -715,18 +736,20 @@ class PDFCIDFont(PDFFont):
                     pass
         else:
             try:
-                self.unicode_map = CMapDB.get_unicode_map(self.cidcoding, self.cmap.is_vertical())
-            except CMapDB.CMapNotFound as e:
+                self.unicode_map = CMapDB.get_unicode_map(
+                    self.cidcoding, self.cmap.is_vertical())
+            except CMapDB.CMapNotFound:
                 pass
 
         self.vertical = self.cmap.is_vertical()
         if self.vertical:
             # writing mode: vertical
             widths = get_widths2(list_value(spec.get('W2', [])))
-            self.disps = dict((cid, (vx, vy)) for (cid, (_, (vx, vy))) in six.iteritems(widths))
+            self.disps = {cid: (vx, vy)
+                          for (cid, (_, (vx, vy))) in widths.items()}
             (vy, w) = spec.get('DW2', [880, -1000])
             self.default_disp = (None, vy)
-            widths = dict((cid, w) for (cid, (w, _)) in six.iteritems(widths))
+            widths = {cid: w for (cid, (w, _)) in widths.items()}
             default_width = w
         else:
             # writing mode: horizontal
@@ -768,7 +791,8 @@ class PDFCIDFont(PDFFont):
             return CMap()
 
     def __repr__(self):
-        return '<PDFCIDFont: basefont=%r, cidcoding=%r>' % (self.basefont, self.cidcoding)
+        return '<PDFCIDFont: basefont={!r}, cidcoding={!r}>'\
+            .format(self.basefont, self.cidcoding)
 
     def is_vertical(self):
         return self.vertical
@@ -791,11 +815,12 @@ class PDFCIDFont(PDFFont):
         except KeyError:
             raise PDFUnicodeNotDefined(self.cidcoding, cid)
 
+
 def main(argv):
     for fname in argv[1:]:
         fp = open(fname, 'rb')
         font = CFFFont(fname, fp)
-        print (font)
+        print(font)
         fp.close()
     return
 

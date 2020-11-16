@@ -652,7 +652,7 @@ class PDFType1Font(PDFSimpleFont):
                     # Replace the cid2unicode table with the differences
                     for key in encodingDifferences.keys():
                         newChar = encodingDifferences[key]
-                        if newChar.startswith("uni"):
+                        if newChar.startswith("uni") and newChar[-1].isdigit():
                             # Convert from uniXXXX to Unicode literal
                             hexValue = newChar[3:]
                             decimalValue = int(hexValue, 16)
